@@ -1,0 +1,204 @@
+{
+  "movies": [
+    {
+      "id": 1,
+      "title": " BedEsaretineli",
+      "release_date": "1994",
+      "vote_average": 9.3,
+      "overview": "Andy Dufresne, genç ve başarılı bir bankerdir. Karısını ve karısının sevgilisini öldürmek suçundan yargılanır ve ömür boyu hapis cezası alır. Shawsank Hapishanesi'nde dayak, işkence, tecavüz, her türlü durum yaşanmaktadır fakat Andy gene de hayata bağlı ve iyimserdir. Bu tutumu etrafındakileri de etkiler.",
+      "poster": "./images/esaret.jpg.webp",
+      "runtime": 142,
+      "category": "top_rated"
+    },
+    {
+      "id": 2,
+      "title": "tokyo ",
+      "release_date": "2006",
+      "vote_average": 9.2,
+      "overview": "Tokyo'ya babasının yanına taşınan asi bir gencin, Tokyo sokaklarında önemli bir yarışçı olma sürecini anlatıyor.",
+      "poster": "./images/tokyo.jpg.jpg",
+      "runtime": 175,
+      "category": "top_rated"
+    },
+    {
+      "id": 3,
+      "title": "Kara Şövalye",
+      "release_date": "2008",
+      "vote_average": 9.0,
+      "overview": "Batman, Joker'in Gotham'ı kaosa sürüklemesini engellemek için son bir mücadeleye girişir.",
+      "poster": "./images/kara.jpg.webp",
+      "runtime": 152,
+      "category": "popular"
+    },
+    {
+      "id": 4,
+      "title": "Spiderman Örümcek Adam ",
+      "release_date": "1957",
+      "vote_average": 8.9,
+      "overview": "Çekingen bir lise öğrencisi olan Peter Parker'ın (Tobey Maguire) hayatı bir gün bir örümcek tarafından ısırılmasıyla tamamen değişir. Isıran örümcek sıradan bir örümcek değil; genetik olarak özelikle geliştirilmiş, bilimsel amaçlarla kullanılan bir denektir. Parker'da tuhaf değişiklikler baş gösterir ve genç adam, hiç beklemediği süper kahraman yetileri kazanmaya başlar..",
+      "poster": "./images/örümcek.jpg.webp",
+      "runtime": 96,
+      "category": "top_rated"
+    },
+    {
+      "id": 5,
+      "title": "Forrest Gump",
+      "release_date": "1994",
+      "vote_average": 8.8,
+      "overview": "Düşük IQ'lu Forrest Gump, Amerikan tarihinin önemli anlarına tanıklık ederek hayat hikayesini anlatır.",
+      "poster": "./images/Forrest.jpg.jpg",
+      "runtime": 142,
+      "category": "popular"
+    },
+    {
+      "id": 6,
+      "title": "Başlangıç",
+      "release_date": "2010",
+      "vote_average": 8.7,
+      "overview": "Rüyalara girip fikir çalabilen bir hırsız, imkansız görünen bir görev için ekibini toplar.",
+      "poster": "https://picsum.photos/seed/m6/500/750",
+      "runtime": 148,
+      "category": "popular"
+    },
+    {
+      "id": 7,
+      "title": "Dövüş Kulübü",
+      "release_date": "1999",
+      "vote_average": 8.6,
+      "overview": "Uykusuzluk çeken bir ofis çalışanı, sabun satıcısı Tyler Durden ile tanışır ve hayatı değişir.",
+      "poster": "./images/dövüş.jpg.jpg",
+      "runtime": 139,
+      "category": "popular"
+    },
+    {
+      "id": 8,
+      "title": "Yüzüklerin Efendisi: Kralın Dönüşü",
+      "release_date": "2003",
+      "vote_average": 8.9,
+      "overview": "Frodo ve Sam son bir hamleyle Yüzük'ü yok etmeye giderken, Gondor'da büyük savaş başlar.",
+      "poster": "/images/yüzükler.jpg.jpg",
+      "runtime": 201,
+      "category": "popular"
+    },
+    {
+      "id": 9,
+      "title": "Deadpool",
+      "release_date": "2002",
+      "vote_average": 8.5,
+      "overview": "Wade Wilson, Ajax ve adamlarından oluşan konvoyu bir otoyolda pusuya düşürür. Pusu boyunca Wilson, izleyiciye Deadpool'a dönüşmesine yol açan olayları gösterir. İki yıl önce, Wade Wilson (Ryan Reynolds), New York'ta paralı asker olarak çalışan eski bir özel kuvvetler mensubudur..",
+      "poster": "./images/Deadpool.jpg.webp",
+      "runtime": 150,
+      "category": "top_rated"
+    },
+    {
+      "id": 10,
+      "title": "Dağ",
+      "release_date": "2012",
+      "vote_average": 8.6,
+      "overview": "İstanbullu Oğuz bedelli askerliği tercih etmek yerine vatani görevinini kısa dönem olarak bölüğünde yerine getirmeyi tercih eder. Keçiörenli Bedir ise ne askerlerle ne komutanlarla iyi geçinebilen, başlı başına arıza bir uzun dönem erdir. Asiliğinden dolayı aldığı cezalarla da askerliği iki sene uzamıştır..",
+      "poster": "./images/Dağ.jpg.webp",
+      "runtime": 189,
+      "category": "top_rated"
+    },
+    {
+      "id": 11,
+      "title": "Yıldızlararası",
+      "release_date": "2014",
+      "vote_average": 8.6,
+      "overview": "Dünya çökerken bir grup kaşif, insanlığın kurtuluşu için uzayda yeni bir yuva arar.",
+      "poster": "/images/yıldızlar.jpg.webp",
+      "runtime": 169,
+      "category": "popular"
+    },
+    {
+      "id": 12,
+      "title": "Matrix",
+      "release_date": "1999",
+      "vote_average": 8.7,
+      "overview": "Bilgisayar korsanı Neo, gerçek dünyanın aslında bir simülasyon olduğunu keşfeder.",
+      "poster": "./images/matrix.jpg.jpg",
+      "runtime": 136,
+      "category": "popular"
+    },
+    {
+      "id": 13,
+      "title": "Atatürk",
+      "release_date": "1881-1919",
+      "vote_average": 8.2,
+      "overview": "Aras Bulut İynemli'nin Mustafa Kemal Atatürk'ü canlandırdığı Atatürk 1881 - 1919, yetim bir çocukken bir kahraman dönüşen Atatürk'ün hayat hikayesini konu ediyor. Serinin ilk filminde, Mustafa Kemal'in milli mücadelenin lideri olmaya giden basamakları tırmandığı dönemler konu ediliyor.",
+      "poster": "./images/atatürk.jpg.webp",
+      "runtime": 96,
+      "category": "top_rated"
+    },
+    {
+      "id": 14,
+      "title": "Parazit",
+      "release_date": "2019",
+      "vote_average": 8.5,
+      "overview": "Yoksul bir aile, zengin bir ailenin evine sızarak hayatlarını değiştirmeye çalışır.",
+      "poster": "./images/parazit.jpg.jpg",
+      "runtime": 132,
+      "category": "popular"
+    },
+    {
+      "id": 15,
+      "title": "Joker",
+      "release_date": "2019",
+      "vote_average": 8.4,
+      "overview": "Başarısız bir komedyen, toplum tarafından dışlanınca karanlık bir dönüşüm geçirir.",
+      "poster": "./images/joker.jpg.jpg",
+      "runtime": 122,
+      "category": "popular"
+    },
+    {
+      "id": 16,
+      "title": "Uzay Yolu: Yeni Nesil",
+      "release_date": "2025",
+      "vote_average": 0,
+      "overview": "Uzay Yolu evreninde yeni nesil maceralar. Keşif ve diplomasi yolculuğu devam ediyor.",
+      "poster": "./images/uzay yolu.jpg.jpg",
+      "runtime": 0,
+      "category": "upcoming"
+    },
+    {
+      "id": 17,
+      "title": "Avatar: Suyun Yolu",
+      "release_date": "2025",
+      "vote_average": 0,
+      "overview": "Pandora'da Jake Sully ve ailesi yeni tehditlerle karşılaşır. Su kabileleriyle ittifak kurulur.",
+      "poster": "./images/avatar.jpg.jpg",
+      "runtime": 0,
+      "category": "upcoming"
+    },
+    {
+      "id": 18,
+      "title": "Süpermen: Yeni Gün",
+      "release_date": "2025",
+      "vote_average": 0,
+      "overview": "DC evreninde Süpermen'in yeni bir yorumu. Kahramanlık ve kimlik temaları işleniyor.",
+      "poster": "./images/süpermen.jpg.jpg",
+      "runtime": 0,
+      "category": "upcoming"
+    },
+    {
+      "id": 19,
+      "title": "Karayip Korsanları:salazarın intikamı",
+      "release_date": "2017",
+      "vote_average": 0,
+      "overview": "Johnny Depp, Karayip Korsanları: Salazar'ın İntikamı filminde ikonik, heyecan verici anti-kahraman rolü Jack Sparrow ile sinemaya geri dönüyor. Çılgın maceralara atılan talihsiz Jack Sparrow yaklaşan kötü kaderin rüzgarını hissetmeye başlamıştır. Korkunç Kaptan Salazar (Javier Bardem) tarafından yönetilen ölümcül hayalet korsanlar, Jack hariç denizdeki tüm korsanları öldürerek Şeytan Üçgeni'nden kaçmıştır ve Jack'in hayatta kalmak için tek umudu efsanevi Poseidon Asası'nı bulmaktır. Jack Sparrow, asayı bulmak için güzel ve zeki gökbilimci Carina Smyth (Kaya Scodelario) ve Kraliyet Donanmasından Henry (Brenton Thwaites) adında dik başlı, genç bir denizciyle pek de kolay olmayan bir anlaşma yapmak zorundadır. Küçük ve külüstür gemisi Dying Gull'un dümenindeki Jack Sparrow, yalnızca kötü kaderini tersine çevirmenin değil, şu ana kadar karşılaştığı en dişli ve korkunç düşmandan kendini nasıl kurtaracağının da yollarını aramaktadır..",
+      "poster": "./images/karayıp korsanlar.jpg.jpg",
+      "runtime": 0,
+      "category": "upcoming"
+    },
+    {
+      "id": 20,
+      "title": "Mission: Impossible 9",
+      "release_date": "2025",
+      "vote_average": 0,
+      "overview": "Ethan Hunt ve ekibi bu sefer dünyayı tehdit eden en tehlikeli düşmanla yüzleşecek.",
+      "poster": "./images/mission.jpg.jpg",
+      "runtime": 0,
+      "category": "upcoming"
+    }
+  ]
+}

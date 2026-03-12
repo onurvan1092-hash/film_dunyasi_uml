@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Film Dünyası | Popüler Filmler</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=Playfair+Display:wght@600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <header class="header">
+    <div class="container header-inner">
+      <a href="#" class="logo">
+        <img class="logo-icon" src="images/onur.jpg.jpg" alt="Film Dünyası">
+        <span class="logo-text">Film Dünyası</span>
+      </a>
+      <nav class="nav">
+        <button type="button" class="nav-link active" data-filter="popular">Popüler</button>
+        <button type="button" class="nav-link" data-filter="top_rated">En İyi</button>
+        <button type="button" class="nav-link" data-filter="upcoming">Yakında</button>
+      </nav>
+      <div class="search-wrap">
+        <input type="search" class="search-input" placeholder="Film ara..." autocomplete="off">
+        <span class="search-icon">🔍</span>
+      </div>
+    </div>
+  </header>
+
+  <main class="main">
+    <section class="hero">
+      <div class="hero-bg"></div>
+      <div class="container hero-content">
+        <h1 class="hero-title">Binlerce film.<br>Tek adres.</h1>
+        <p class="hero-subtitle">Popüler filmleri keşfet, detayları incele, favorilerini bul. YENİ ŞUBEMİZ GETİRGÖTÜR</p>
+      </div>
+    </section>
+
+    <section class="movies-section container">
+      <h2 class="section-title" id="section-title">Popüler Filmler</h2>
+      <div class="movies-grid" id="movies-grid">
+        <!-- Film kartları buraya yüklenecek -->
+      </div>
+      <div class="loading" id="loading">
+        <div class="spinner"></div>
+        <p>Yükleniyor...</p>
+      </div>
+      <div class="empty-state" id="empty-state" hidden>
+        <p>Film bulunamadı.</p>
+      </div>
+    </section>
+  </main>
+
+  <div class="modal" id="movie-modal" aria-hidden="true">
+    <div class="modal-backdrop" id="modal-backdrop"></div>
+    <div class="modal-content">
+      <button type="button" class="modal-close" id="modal-close" aria-label="Kapat">×</button>
+      <div class="modal-body" id="modal-body">
+        <!-- Film detayı buraya yüklenecek -->
+      </div>
+    </div>
+  </div>
+
+  <footer class="footer">
+    <div class="container">
+      <p>Film verileri yerel <code>db.json</code> dosyasından yüklenmektedir.</p>
+    </div>
+  </footer>
+
+  <script src="app.js"></script>
+</body>
+</html>
