@@ -1,4 +1,537 @@
 (function () {
+  'use strict';
+
+  // ===== Auth (localStorage) =====
+  const STORAGE_USERS_KEY = 'film_dunyasi_users_v1';
+  const STORAGE_SESSION_KEY = 'film_dunyasi_session_v1';
+  const ADMIN_SESSION_ROLE = 'admin';
+  const ADMIN_USERNAME = 'admin';
+  const ADMIN_PASSWORD = '1234';
+
+  const appView = document.getElementById('app-view');
+  const authOverlay = document.getElementById('auth-overlay');
+  const authCloseBtn = document.getElementById('auth-close');
+  const authError = document.getElementById('auth-error');
+  const authSuccess = document.getElementById('auth-success');
+  const panelStatus = document.getElementById('panel-status');
+
+  const authActions = document.getElementById('auth-actions');
+  const userActions = document.getElementById('user-actions');
+  const logoutBtn = document.getElementById('logout-btn');
+  const profileBtn = document.getElementById('profile-btn');
+
+  const openLoginBtn = document.getElementById('open-login');
+  const openRegisterBtn = document.getElementById('open-register');
+
+  const tabLoginBtn = document.getElementById('tab-login');
+  const tabRegisterBtn = document.getElementById('tab-register');
+
+  const loginForm = document.getElementById('login-form');
+  const adminForm = document.getElementById('admin-form');
+  const registerForm = document.getElementById('register-form');
+
+  const loginEmail = document.getElementById('login-email');
+  const loginPassword = document.getElementById('login-password');
+
+  const adminUsername = document.getElementById('admin-username');
+  const adminPassword = document.getElementById('admin-password');
+  const openAdminLoginBtn = document.getElementById('open-admin-login');
+  const openUserLoginBtn = document.getElementById('open-user-login');
+  const openUserLoginBtn2 = document.getElementById('open-user-login-2');
+
+  const registerName = document.getElementById('register-name');
+  const registerEmail = document.getElementById('register-email');
+  const registerPassword = document.getElementById('register-password');
+  const registerConfirmPassword = document.getElementById('register-confirm-password');
+
+  // Admin panel elements
+  const adminPanel = document.getElementById('admin-panel');
+  const adminRefreshBtn = document.getElementById('admin-refresh');
+  const adminUsersCount = document.getElementById('admin-users-count');
+  const adminMoviesCount = document.getElementById('admin-movies-count');
+  const adminUsersTbody = document.getElementById('admin-users-tbody');
+  const adminMoviesTbody = document.getElementById('admin-movies-tbody');
+
+  const authState = {
+    users: [],
+    currentUser: null,
+    role: 'user'
+  };
+
+  function normalizeEmail(email) {
+    return (email || '').trim().toLowerCase();
+  }
+
+  function createUserId() {
+    if (typeof crypto !== 'undefined' && crypto.randomUUID) return crypto.randomUUID();
+    const arr = new Uint8Array(16);
+    crypto.getRandomValues(arr);
+    return Array.from(arr).map(function (b) { return b.toString(16).padStart(2, '0'); }).join('');
+  }
+
+  function randomSalt() {
+    const arr = new Uint8Array(16);
+    crypto.getRandomValues(arr);
+    return Array.from(arr).map(function (b) { return b.toString(16).padStart(2, '0'); }).join('');
+  }
+
+  async function sha256Hex(text) {
+    const data = new TextEncoder().encode(text);
+    const digest = await crypto.subtle.digest('SHA-256', data);
+    return Array.from(new Uint8Array(digest)).map(function (b) {
+      return b.toString(16).padStart(2, '0');
+    }).join('');
+  }
+
+  async function hashPassword(password, salt) {
+    return sha256Hex(salt + ':' + password);
+  }
+
+  function loadUsers() {
+    const raw = localStorage.getItem(STORAGE_USERS_KEY);
+    if (!raw) return [];
+    try {
+      const parsed = JSON.parse(raw);
+      return Array.isArray(parsed) ? parsed : [];
+    } catch (e) {
+      return [];
+    }
+  }
+
+  function saveUsers(users) {
+    localStorage.setItem(STORAGE_USERS_KEY, JSON.stringify(users));
+  }
+
+  function loadSession() {
+    const raw = localStorage.getItem(STORAGE_SESSION_KEY);
+    if (!raw) return null;
+    try {
+      return JSON.parse(raw);
+    } catch (e) {
+      return null;
+    }
+  }
+
+  function persistSession(session) {
+    localStorage.setItem(STORAGE_SESSION_KEY, JSON.stringify(session));
+  }
+
+  function showError(message) {
+    if (!authError) return;
+    authError.hidden = false;
+    authError.textContent = message;
+  }
+
+  function clearError() {
+    if (!authError) return;
+    authError.hidden = true;
+    authError.textContent = '';
+  }
+
+  function showSuccess(message) {
+    if (!authSuccess) return;
+    authSuccess.hidden = false;
+    authSuccess.textContent = message;
+  }
+
+  function clearSuccess() {
+    if (!authSuccess) return;
+    authSuccess.hidden = true;
+    authSuccess.textContent = '';
+  }
+
+  function formatDate(iso) {
+    if (!iso) return '—';
+    try {
+      return new Date(iso).toLocaleDateString('tr-TR');
+    } catch (e) {
+      return iso;
+    }
+  }
+
+  function setAuthTab(tab) {
+    const isLogin = tab === 'login';
+    const isRegister = tab === 'register';
+    const isAdmin = tab === 'admin';
+
+    if (tabLoginBtn) tabLoginBtn.classList.toggle('active', isLogin);
+    if (tabRegisterBtn) tabRegisterBtn.classList.toggle('active', isRegister);
+
+    if (loginForm) loginForm.hidden = !isLogin;
+    if (registerForm) registerForm.hidden = !isRegister;
+    if (adminForm) adminForm.hidden = !isAdmin;
+  }
+
+  function switchAuthView(tab) {
+    authState.currentUser = null;
+    authState.role = 'user';
+    if (authActions) authActions.hidden = false;
+    if (userActions) userActions.hidden = true;
+    if (adminPanel) adminPanel.hidden = true;
+
+    // Ana ekranı kapat, popup'ı açık tut.
+    if (appView) appView.hidden = true;
+    if (authOverlay) {
+      authOverlay.hidden = false;
+      authOverlay.setAttribute('aria-hidden', 'false');
+    }
+
+    document.body.classList.add('auth-locked');
+    setAuthTab(tab || 'login');
+    clearError();
+    clearSuccess();
+
+    // Kullanıcının hemen form alanına yazabilmesi için otomatik focus.
+    setTimeout(function () {
+      if (tab === 'login') {
+        if (loginEmail) loginEmail.focus();
+      } else {
+        if (registerName) registerName.focus();
+      }
+    }, 0);
+  }
+
+  function showLoggedOut(defaultTab) {
+    switchAuthView(defaultTab || 'login');
+  }
+
+  function closeAuthOverlay() {
+    if (authOverlay) {
+      authOverlay.hidden = true;
+      authOverlay.setAttribute('aria-hidden', 'true');
+    }
+    document.body.classList.remove('auth-locked');
+
+    // Paneli kapatınca ana ekran görünsün (kayıt olmak istemeyenler için).
+    if (appView) appView.hidden = false;
+    startMoviesApp();
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  function showLoggedIn(user, statusMessage) {
+    authState.currentUser = user;
+    authState.role = 'user';
+    if (authActions) authActions.hidden = true;
+    if (userActions) userActions.hidden = false;
+    if (appView) appView.hidden = false;
+    if (adminPanel) adminPanel.hidden = true;
+    if (authOverlay) {
+      authOverlay.hidden = true;
+      authOverlay.setAttribute('aria-hidden', 'true');
+    }
+    document.body.classList.remove('auth-locked');
+    clearSuccess();
+
+    if (panelStatus) {
+      if (statusMessage) {
+        panelStatus.hidden = false;
+        panelStatus.textContent = statusMessage;
+        window.setTimeout(function () {
+          if (!panelStatus) return;
+          panelStatus.hidden = true;
+        }, 2200);
+      } else {
+        panelStatus.hidden = true;
+        panelStatus.textContent = '';
+      }
+    }
+
+    startMoviesApp();
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  function showAdminLoggedIn(statusMessage) {
+    authState.currentUser = { id: 'admin', name: 'Admin', email: 'admin' };
+    authState.role = ADMIN_SESSION_ROLE;
+    if (authActions) authActions.hidden = true;
+    if (userActions) userActions.hidden = false;
+    if (appView) appView.hidden = false;
+    if (adminPanel) adminPanel.hidden = false;
+    if (authOverlay) {
+      authOverlay.hidden = true;
+      authOverlay.setAttribute('aria-hidden', 'true');
+    }
+    document.body.classList.remove('auth-locked');
+    clearSuccess();
+    if (panelStatus) {
+      if (statusMessage) {
+        panelStatus.hidden = false;
+        panelStatus.textContent = statusMessage;
+        window.setTimeout(function () {
+          if (!panelStatus) return;
+          panelStatus.hidden = true;
+        }, 2200);
+      } else {
+        panelStatus.hidden = true;
+        panelStatus.textContent = '';
+      }
+    }
+    startMoviesApp();
+    renderAdminPanel();
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  function renderAdminPanel() {
+    if (authState.role !== ADMIN_SESSION_ROLE) return;
+    authState.users = loadUsers();
+    if (adminUsersCount) adminUsersCount.textContent = String(authState.users.length);
+    if (adminMoviesCount) adminMoviesCount.textContent = String(allMovies.length || 0);
+
+    if (adminUsersTbody) {
+      adminUsersTbody.innerHTML = '';
+      authState.users.forEach(function (u) {
+        const tr = document.createElement('tr');
+        tr.innerHTML =
+          '<td>' + escapeHtml(u.name || '—') + '</td>' +
+          '<td>' + escapeHtml(u.email || '—') + '</td>' +
+          '<td>' + escapeHtml(formatDate(u.createdAt)) + '</td>' +
+          '<td style="text-align:right;">' +
+            '<button type="button" class="auth-btn admin-danger" data-admin-action="delete-user" data-user-id="' + escapeHtml(u.id) + '">Sil</button>' +
+          '</td>';
+        adminUsersTbody.appendChild(tr);
+      });
+    }
+
+    if (adminMoviesTbody) {
+      adminMoviesTbody.innerHTML = '';
+      (allMovies || []).slice(0, 60).forEach(function (m) {
+        const tr = document.createElement('tr');
+        const rating = m.vote_average != null && m.vote_average > 0 ? m.vote_average.toFixed(1) : '—';
+        tr.innerHTML =
+          '<td>' + escapeHtml(m.title || '—') + '</td>' +
+          '<td>' + escapeHtml(m.category || '—') + '</td>' +
+          '<td>' + escapeHtml(m.release_date || '—') + '</td>' +
+          '<td>' + escapeHtml(rating) + '</td>';
+        adminMoviesTbody.appendChild(tr);
+      });
+    }
+  }
+
+  // ===== Profile modal =====
+  const profileModal = document.getElementById('profile-modal');
+  const profileBackdrop = document.getElementById('profile-backdrop');
+  const profileClose = document.getElementById('profile-close');
+  const profileName = document.getElementById('profile-name');
+  const profileEmail = document.getElementById('profile-email');
+  const profileCreatedAt = document.getElementById('profile-created-at');
+  const profileId = document.getElementById('profile-id');
+
+  function fillProfile(user) {
+    if (!user) return;
+    if (profileName) profileName.textContent = user.name || '—';
+    if (profileEmail) profileEmail.textContent = user.email || '—';
+    if (profileCreatedAt) profileCreatedAt.textContent = formatDate(user.createdAt);
+    if (profileId) profileId.textContent = user.id || '—';
+  }
+
+  function openProfile() {
+    if (!profileModal) return;
+    fillProfile(authState.currentUser);
+    profileModal.setAttribute('aria-hidden', 'false');
+  }
+
+  function closeProfile() {
+    if (!profileModal) return;
+    profileModal.setAttribute('aria-hidden', 'true');
+  }
+
+  async function handleRegister(e) {
+    e.preventDefault();
+    clearError();
+
+    const name = (registerName && registerName.value || '').trim();
+    const email = normalizeEmail(registerEmail && registerEmail.value);
+    const password = registerPassword && registerPassword.value;
+    const confirm = registerConfirmPassword && registerConfirmPassword.value;
+
+    if (!name || !email || !password || !confirm) {
+      showError('Lütfen tüm alanları doldurun.');
+      return;
+    }
+    if (password !== confirm) {
+      showError('Şifreler eşleşmiyor.');
+      return;
+    }
+
+    const users = authState.users;
+    if (users.some(function (u) { return u.email === email; })) {
+      showError('Bu e-posta ile zaten kayıtlı bir kullanıcı var.');
+      return;
+    }
+
+    try {
+      if (!crypto || !crypto.subtle) {
+        showError('Bu tarayıcıda şifreleme desteklenmiyor.');
+        return;
+      }
+
+      const salt = randomSalt();
+      const passwordHash = await hashPassword(password, salt);
+
+      const user = {
+        id: createUserId(),
+        name: name,
+        email: email,
+        salt: salt,
+        passwordHash: passwordHash,
+        createdAt: new Date().toISOString()
+      };
+
+      users.push(user);
+      saveUsers(users);
+
+      // Kayıttan sonra otomatik giriş yapma; giriş ekranını göster.
+      if (loginEmail) loginEmail.value = email;
+      if (loginPassword) loginPassword.value = '';
+
+      showLoggedOut('login');
+    } catch (err) {
+      // crypto.subtle bazı tarayıcılarda sadece secure context'te çalışır.
+      const msg = err && err.message ? err.message : 'Şifre işlenirken hata oluştu.';
+      showError(msg);
+      console.error(err);
+    }
+  }
+
+  async function handleLogin(e) {
+    e.preventDefault();
+    clearError();
+    clearSuccess();
+
+    const email = normalizeEmail(loginEmail && loginEmail.value);
+    const password = loginPassword && loginPassword.value;
+
+    if (!email || !password) {
+      showError('E-posta ve şifre zorunludur.');
+      return;
+    }
+
+    const users = authState.users;
+    const user = users.find(function (u) { return u.email === email; });
+    if (!user) {
+      showError('Kayıtlı kullanıcı bulunamadı. Önce kayıt olun.');
+      return;
+    }
+
+    try {
+      if (!crypto || !crypto.subtle) {
+        showError('Bu tarayıcıda şifreleme desteklenmiyor.');
+        return;
+      }
+
+      const candidateHash = await hashPassword(password, user.salt);
+      if (candidateHash !== user.passwordHash) {
+        showError('E-posta veya şifre hatalı.');
+        return;
+      }
+
+      persistSession({ userId: user.id, role: 'user' });
+      // Hemen ana ekrana geç.
+      showLoggedIn(user, 'Giriş başarılı! Hoş geldin.');
+    } catch (err) {
+      const msg = err && err.message ? err.message : 'Giriş işlemi sırasında hata oluştu.';
+      showError(msg);
+      console.error(err);
+    }
+  }
+
+  function handleAdminLogin(e) {
+    e.preventDefault();
+    clearError();
+    clearSuccess();
+
+    const u = (adminUsername && adminUsername.value || '').trim();
+    const p = adminPassword && adminPassword.value;
+
+    if (!u || !p) {
+      showError('Admin kullanıcı adı ve şifre zorunludur.');
+      return;
+    }
+
+    if (u !== ADMIN_USERNAME || p !== ADMIN_PASSWORD) {
+      showError('Admin bilgileri hatalı.');
+      return;
+    }
+
+    persistSession({ role: ADMIN_SESSION_ROLE });
+    showAdminLoggedIn('Admin girişi başarılı.');
+  }
+
+  function bindAuthEvents() {
+    // Header butonları sadece form ekranını değiştirir; popup açık kalır.
+    if (openLoginBtn) openLoginBtn.addEventListener('click', function () { switchAuthView('login'); });
+    if (openRegisterBtn) openRegisterBtn.addEventListener('click', function () { switchAuthView('register'); });
+
+    if (tabLoginBtn) tabLoginBtn.addEventListener('click', function () { setAuthTab('login'); clearError(); });
+    if (tabRegisterBtn) tabRegisterBtn.addEventListener('click', function () { setAuthTab('register'); clearError(); });
+
+    if (loginForm) loginForm.addEventListener('submit', handleLogin);
+    if (adminForm) adminForm.addEventListener('submit', handleAdminLogin);
+    if (registerForm) registerForm.addEventListener('submit', handleRegister);
+
+    if (logoutBtn) {
+      logoutBtn.addEventListener('click', function () {
+        localStorage.removeItem(STORAGE_SESSION_KEY);
+        showLoggedOut('register');
+      });
+    }
+
+    if (profileBtn) {
+      profileBtn.addEventListener('click', function () {
+        if (!authState.currentUser) return;
+        openProfile();
+      });
+    }
+
+    if (authCloseBtn) {
+      authCloseBtn.addEventListener('click', function () {
+        closeAuthOverlay();
+      });
+    }
+
+    if (openAdminLoginBtn) openAdminLoginBtn.addEventListener('click', function () { switchAuthView('admin'); });
+    if (openUserLoginBtn) openUserLoginBtn.addEventListener('click', function () { switchAuthView('login'); });
+    if (openUserLoginBtn2) openUserLoginBtn2.addEventListener('click', function () { switchAuthView('login'); });
+
+    if (adminRefreshBtn) adminRefreshBtn.addEventListener('click', renderAdminPanel);
+
+    if (adminUsersTbody) {
+      adminUsersTbody.addEventListener('click', function (ev) {
+        const btn = ev.target && ev.target.closest ? ev.target.closest('button[data-admin-action]') : null;
+        if (!btn) return;
+        const action = btn.getAttribute('data-admin-action');
+        if (action !== 'delete-user') return;
+        const userId = btn.getAttribute('data-user-id');
+        if (!userId) return;
+        const users = loadUsers().filter(function (u) { return u.id !== userId; });
+        saveUsers(users);
+        authState.users = users;
+        renderAdminPanel();
+      });
+    }
+  }
+
+  function initAuth() {
+    authState.users = loadUsers();
+    const session = loadSession();
+    if (session && session.role === ADMIN_SESSION_ROLE) {
+      showAdminLoggedIn();
+      return true;
+    }
+
+    const userId = session && session.userId;
+    const user = userId ? authState.users.find(function (u) { return u.id === userId; }) : null;
+    if (user) {
+      showLoggedIn(user);
+      return true;
+    }
+    // İlk açılışta kayıt ekranı gelsin.
+    showLoggedOut('register');
+    return false;
+  }
+
+  bindAuthEvents();
+
   const IMAGE_PLACEHOLDER = 'https://via.placeholder.com/500x750/1a1a1a/666?text=Poster+yok';
 
   const grid = document.getElementById('movies-grid');
@@ -169,11 +702,23 @@
   modalBackdrop.addEventListener('click', closeModal);
   modalClose.addEventListener('click', closeModal);
 
+  if (profileBackdrop) profileBackdrop.addEventListener('click', closeProfile);
+  if (profileClose) profileClose.addEventListener('click', closeProfile);
+
   document.addEventListener('keydown', function (e) {
     if (e.key === 'Escape' && modal.getAttribute('aria-hidden') === 'false') closeModal();
+    if (e.key === 'Escape' && profileModal && profileModal.getAttribute('aria-hidden') === 'false') closeProfile();
   });
 
-  loadDb().then(function () {
-    loadList('popular');
-  });
+  let moviesStarted = false;
+  function startMoviesApp() {
+    if (moviesStarted) return;
+    moviesStarted = true;
+    loadDb().then(function () {
+      if (authState.role === ADMIN_SESSION_ROLE) renderAdminPanel();
+      loadList('popular');
+    });
+  }
+
+  initAuth();
 })();

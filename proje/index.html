@@ -25,32 +25,154 @@
         <input type="search" class="search-input" placeholder="Film ara..." autocomplete="off">
         <span class="search-icon">🔍</span>
       </div>
+      <div class="auth-area">
+        <div class="auth-actions" id="auth-actions">
+          <button type="button" class="auth-btn" id="open-login">Giriş Yap</button>
+          <button type="button" class="auth-btn primary" id="open-register">Kayıt Ol</button>
+        </div>
+
+        <div class="user-actions" id="user-actions" hidden>
+          <button type="button" class="auth-btn" id="profile-btn">Profil</button>
+          <button type="button" class="auth-btn" id="logout-btn">Çıkış Yap</button>
+        </div>
+      </div>
     </div>
   </header>
 
   <main class="main">
-    <section class="hero">
-      <div class="hero-bg"></div>
-      <div class="container hero-content">
-        <h1 class="hero-title">Binlerce film.<br>Tek adres.</h1>
-        <p class="hero-subtitle">Popüler filmleri keşfet, detayları incele, favorilerini bul. YENİ ŞUBEMİZ GETİRGÖTÜR</p>
-      </div>
-    </section>
+    <div id="app-view" hidden>
+      <section class="hero">
+        <div class="hero-bg"></div>
+        <div class="container hero-content">
+          <h1 class="hero-title">Binlerce film.<br>Tek adres.</h1>
+          <p class="hero-subtitle">Popüler filmleri keşfet, detayları incele, favorilerini bul. YENİ ŞUBEMİZ GETİRGÖTÜR</p>
+        </div>
+      </section>
 
-    <section class="movies-section container">
-      <h2 class="section-title" id="section-title">Popüler Filmler</h2>
-      <div class="movies-grid" id="movies-grid">
-        <!-- Film kartları buraya yüklenecek -->
-      </div>
-      <div class="loading" id="loading">
-        <div class="spinner"></div>
-        <p>Yükleniyor...</p>
-      </div>
-      <div class="empty-state" id="empty-state" hidden>
-        <p>Film bulunamadı.</p>
-      </div>
-    </section>
+      <section class="admin-panel container" id="admin-panel" hidden>
+        <div class="admin-panel-head">
+          <h2 class="section-title" style="margin-bottom: 0;">Admin Paneli</h2>
+          <button type="button" class="auth-btn" id="admin-refresh">Yenile</button>
+        </div>
+
+        <div class="admin-stats" id="admin-stats">
+          <div class="admin-stat-card">
+            <div class="admin-stat-label">Kullanıcı</div>
+            <div class="admin-stat-value" id="admin-users-count">—</div>
+          </div>
+          <div class="admin-stat-card">
+            <div class="admin-stat-label">Film</div>
+            <div class="admin-stat-value" id="admin-movies-count">—</div>
+          </div>
+        </div>
+
+        <div class="admin-grid">
+          <div class="admin-box">
+            <h3 class="admin-box-title">Kullanıcılar</h3>
+            <div class="admin-table-wrap">
+              <table class="admin-table" id="admin-users-table">
+                <thead>
+                  <tr>
+                    <th>Ad</th>
+                    <th>E-posta</th>
+                    <th>Kayıt</th>
+                    <th></th>
+                  </tr>
+                </thead>
+                <tbody id="admin-users-tbody"></tbody>
+              </table>
+            </div>
+          </div>
+
+          <div class="admin-box">
+            <h3 class="admin-box-title">Filmler</h3>
+            <div class="admin-table-wrap">
+              <table class="admin-table" id="admin-movies-table">
+                <thead>
+                  <tr>
+                    <th>Başlık</th>
+                    <th>Kategori</th>
+                    <th>Yıl</th>
+                    <th>Puan</th>
+                  </tr>
+                </thead>
+                <tbody id="admin-movies-tbody"></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="movies-section container">
+        <h2 class="section-title" id="section-title">Popüler Filmler</h2>
+        <div class="movies-grid" id="movies-grid">
+          <!-- Film kartları buraya yüklenecek -->
+        </div>
+        <div class="loading" id="loading">
+          <div class="spinner"></div>
+          <p>Yükleniyor...</p>
+        </div>
+        <div class="empty-state" id="empty-state" hidden>
+          <p>Film bulunamadı.</p>
+        </div>
+      </section>
+    </div>
   </main>
+
+  <div class="auth-overlay" id="auth-overlay" hidden aria-hidden="true">
+    <div class="auth-modal" role="dialog" aria-modal="true" aria-label="Giriş / Kayıt">
+      <button type="button" class="modal-close" id="auth-close" aria-label="Kapat">×</button>
+      <div class="auth-error" id="auth-error" hidden></div>
+      <div class="auth-success" id="auth-success" hidden></div>
+
+      <form id="login-form" class="auth-form" hidden>
+        <div class="auth-field">
+          <label for="login-email">E-posta</label>
+          <input type="email" id="login-email" required autocomplete="username">
+        </div>
+        <div class="auth-field">
+          <label for="login-password">Şifre</label>
+          <input type="password" id="login-password" required autocomplete="current-password">
+        </div>
+        <button type="submit" class="auth-submit">Giriş Yap</button>
+        <button type="button" class="auth-alt" id="open-admin-login">Admin Girişi</button>
+      </form>
+
+      <form id="admin-form" class="auth-form" hidden>
+        <div class="auth-field">
+          <label for="admin-username">Admin Kullanıcı</label>
+          <input type="text" id="admin-username" required autocomplete="username">
+        </div>
+        <div class="auth-field">
+          <label for="admin-password">Şifre</label>
+          <input type="password" id="admin-password" required autocomplete="current-password">
+        </div>
+        <button type="submit" class="auth-submit">Admin Giriş</button>
+        <button type="button" class="auth-alt" id="open-user-login">Kullanıcı Girişi</button>
+      </form>
+
+      <form id="register-form" class="auth-form">
+        <div class="auth-field">
+          <label for="register-name">Ad</label>
+          <input type="text" id="register-name" required autocomplete="name">
+        </div>
+        <div class="auth-field">
+          <label for="register-email">E-posta</label>
+          <input type="email" id="register-email" required autocomplete="username">
+        </div>
+        <div class="auth-field">
+          <label for="register-password">Şifre</label>
+          <input type="password" id="register-password" required autocomplete="new-password">
+        </div>
+        <div class="auth-field">
+          <label for="register-confirm-password">Şifre (Tekrar)</label>
+          <input type="password" id="register-confirm-password" required autocomplete="new-password">
+        </div>
+        <button type="submit" class="auth-submit">Kayıt Ol</button>
+        <button type="button" class="auth-alt" id="open-user-login-2">Zaten hesabım var</button>
+      </form>
+    </div>
+  </div>
 
   <div class="modal" id="movie-modal" aria-hidden="true">
     <div class="modal-backdrop" id="modal-backdrop"></div>
@@ -58,6 +180,34 @@
       <button type="button" class="modal-close" id="modal-close" aria-label="Kapat">×</button>
       <div class="modal-body" id="modal-body">
         <!-- Film detayı buraya yüklenecek -->
+      </div>
+    </div>
+  </div>
+
+  <div class="modal" id="profile-modal" aria-hidden="true">
+    <div class="modal-backdrop" id="profile-backdrop"></div>
+    <div class="modal-content">
+      <button type="button" class="modal-close" id="profile-close" aria-label="Kapat">×</button>
+      <div class="modal-body">
+        <h3 style="margin-bottom: 0.75rem;">Profil</h3>
+        <div class="user-info">
+          <div class="user-info-row">
+            <span class="user-info-label">Ad</span>
+            <span class="user-info-value" id="profile-name">—</span>
+          </div>
+          <div class="user-info-row">
+            <span class="user-info-label">E-posta</span>
+            <span class="user-info-value" id="profile-email">—</span>
+          </div>
+          <div class="user-info-row">
+            <span class="user-info-label">Kayıt Tarihi</span>
+            <span class="user-info-value" id="profile-created-at">—</span>
+          </div>
+          <div class="user-info-row">
+            <span class="user-info-label">Kullanıcı ID</span>
+            <span class="user-info-value" id="profile-id">—</span>
+          </div>
+        </div>
       </div>
     </div>
   </div>
