@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Film Detayı | Film Dünyası</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=Playfair+Display:wght@600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body class="film-detail-body">
+  <header class="header">
+    <div class="container header-inner detail-header-inner">
+      <a href="index.html" class="logo">
+        <img class="logo-icon" src="images/onur.jpg.jpg" alt="Film Dünyası">
+        <span class="logo-text">Film Dünyası</span>
+      </a>
+      <nav class="detail-header-nav">
+        <a href="index.html" class="detail-back-link">← Ana sayfa</a>
+      </nav>
+    </div>
+  </header>
+
+  <main class="main">
+    <section class="container detail-page">
+      <div class="detail-loading-wrap" id="detail-loading">
+        <div class="loading">
+          <div class="spinner"></div>
+          <p>Film bilgileri yükleniyor...</p>
+        </div>
+      </div>
+
+      <div class="detail-error" id="detail-error" role="alert" hidden></div>
+
+      <article id="detail-content" class="detail-article" hidden>
+      </article>
+    </section>
+  </main>
+
+  <footer class="footer">
+    <div class="container">
+      <p>Film verileri MongoDB backend API üzerinden yüklenmektedir.</p>
+    </div>
+  </footer>
+
+  <script src="film-detay.js"></script>
+</body>
+</html>

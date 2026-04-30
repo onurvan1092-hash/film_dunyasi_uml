@@ -8,7 +8,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=Playfair+Display:wght@600&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="styles.css">
-</head>
+</head>     
 <body>
   <header class="header">
     <div class="container header-inner">
@@ -50,25 +50,96 @@
       </section>
 
       <section class="admin-panel container" id="admin-panel" hidden>
-        <div class="admin-panel-head">
-          <h2 class="section-title" style="margin-bottom: 0;">Admin Paneli</h2>
-          <button type="button" class="auth-btn" id="admin-refresh">Yenile</button>
-        </div>
+        <div class="admin-shell">
+        <header class="admin-panel-head">
+          <div class="admin-panel-intro">
+            <p class="admin-eyebrow">Yönetim</p>
+            <h2 class="admin-main-title">Admin paneli</h2>
+            <p class="admin-lead">Veritabanındaki kullanıcı ve filmleri takip edin, yeni içerik ekleyin.</p>
+          </div>
+          <button type="button" class="admin-refresh-btn" id="admin-refresh" aria-label="Verileri yenile">Yenile</button>
+        </header>
 
         <div class="admin-stats" id="admin-stats">
           <div class="admin-stat-card">
-            <div class="admin-stat-label">Kullanıcı</div>
-            <div class="admin-stat-value" id="admin-users-count">—</div>
+            <span class="admin-stat-icon admin-stat-icon--users" aria-hidden="true"></span>
+            <div class="admin-stat-text">
+              <div class="admin-stat-label">Kullanıcı</div>
+              <div class="admin-stat-value" id="admin-users-count">—</div>
+            </div>
           </div>
           <div class="admin-stat-card">
-            <div class="admin-stat-label">Film</div>
-            <div class="admin-stat-value" id="admin-movies-count">—</div>
+            <span class="admin-stat-icon admin-stat-icon--films" aria-hidden="true"></span>
+            <div class="admin-stat-text">
+              <div class="admin-stat-label">Film</div>
+              <div class="admin-stat-value" id="admin-movies-count">—</div>
+            </div>
           </div>
         </div>
 
+        <div class="admin-box admin-add-movie admin-form-card" id="admin-add-movie-wrap">
+          <div class="admin-box-head">
+            <h3 class="admin-box-title">Yeni film</h3>
+            <span class="admin-box-badge">MongoDB</span>
+          </div>
+          <p class="admin-hint">Bu form yalnızca veritabanındaki <strong>admin</strong> hesabı ile giriş yaptığınızda kayıt oluşturur. Önce <code>npm run create-admin</code> ile admin kullanıcısı tanımlayın.</p>
+          <div class="auth-error admin-panel-msg" id="admin-panel-msg" hidden></div>
+          <form id="admin-add-movie-form" class="admin-movie-form">
+            <div class="admin-movie-row">
+              <div class="auth-field">
+                <label for="admin-movie-title">Başlık *</label>
+                <input type="text" id="admin-movie-title" required maxlength="200" autocomplete="off">
+              </div>
+              <div class="auth-field">
+                <label for="admin-movie-category">Kategori</label>
+                <select id="admin-movie-category">
+                  <option value="popular">Popüler</option>
+                  <option value="top_rated">En İyi</option>
+                  <option value="upcoming">Yakında</option>
+                </select>
+              </div>
+            </div>
+            <div class="admin-movie-row">
+              <div class="auth-field">
+                <label for="admin-movie-release">Çıkış tarihi</label>
+                <input type="text" id="admin-movie-release" placeholder="Örn: 2024-06-12" maxlength="40">
+              </div>
+              <div class="auth-field">
+                <label for="admin-movie-rating">Puan</label>
+                <input type="number" id="admin-movie-rating" step="0.1" min="0" max="10" placeholder="0–10">
+              </div>
+              <div class="auth-field">
+                <label for="admin-movie-runtime">Süre (dk)</label>
+                <input type="number" id="admin-movie-runtime" min="0" step="1" placeholder="Örn: 120">
+              </div>
+            </div>
+            <div class="auth-field">
+              <label for="admin-movie-poster">Afiş URL</label>
+              <input type="url" id="admin-movie-poster" placeholder="https://...">
+            </div>
+            <div class="auth-field">
+              <label for="admin-movie-overview">Özet</label>
+              <textarea id="admin-movie-overview" rows="3" placeholder="Film özeti"></textarea>
+            </div>
+            <div class="auth-field">
+              <label for="admin-movie-watch">İzleme linki</label>
+              <input type="url" id="admin-movie-watch" placeholder="https://www.youtube.com/watch?v=... veya https://...">
+              <span class="field-hint">İsteğe bağlı (<code>watch_url</code>). Yerleşik oynatma için doğrudan veritabanında <code>videoUrl</code> kullanabilirsiniz.</span>
+            </div>
+            <div class="auth-field">
+              <label for="admin-movie-video">Video dosyası URL (ör. mp4)</label>
+              <input type="url" id="admin-movie-video" placeholder="https://.../film.mp4">
+              <span class="field-hint">İsteğe bağlı — detayda Oynat; en fazla 20 dk, tam ekran. Alan adı: <code>videoUrl</code>.</span>
+            </div>
+            <button type="submit" class="auth-submit admin-submit-btn">Veritabanına ekle</button>
+          </form>
+        </div>
+
         <div class="admin-grid">
-          <div class="admin-box">
-            <h3 class="admin-box-title">Kullanıcılar</h3>
+          <div class="admin-box admin-table-card">
+            <div class="admin-box-head">
+              <h3 class="admin-box-title">Kullanıcılar</h3>
+            </div>
             <div class="admin-table-wrap">
               <table class="admin-table" id="admin-users-table">
                 <thead>
@@ -84,8 +155,10 @@
             </div>
           </div>
 
-          <div class="admin-box">
-            <h3 class="admin-box-title">Filmler</h3>
+          <div class="admin-box admin-table-card">
+            <div class="admin-box-head">
+              <h3 class="admin-box-title">Filmler</h3>
+            </div>
             <div class="admin-table-wrap">
               <table class="admin-table" id="admin-movies-table">
                 <thead>
@@ -94,12 +167,14 @@
                     <th>Kategori</th>
                     <th>Yıl</th>
                     <th>Puan</th>
+                    <th></th>
                   </tr>
                 </thead>
                 <tbody id="admin-movies-tbody"></tbody>
               </table>
             </div>
           </div>
+        </div>
         </div>
       </section>
 
@@ -140,8 +215,8 @@
 
       <form id="admin-form" class="auth-form" hidden>
         <div class="auth-field">
-          <label for="admin-username">Admin Kullanıcı</label>
-          <input type="text" id="admin-username" required autocomplete="username">
+          <label for="admin-email">Admin e-posta</label>
+          <input type="email" id="admin-email" required autocomplete="username">
         </div>
         <div class="auth-field">
           <label for="admin-password">Şifre</label>
@@ -171,16 +246,6 @@
         <button type="submit" class="auth-submit">Kayıt Ol</button>
         <button type="button" class="auth-alt" id="open-user-login-2">Zaten hesabım var</button>
       </form>
-    </div>
-  </div>
-
-  <div class="modal" id="movie-modal" aria-hidden="true">
-    <div class="modal-backdrop" id="modal-backdrop"></div>
-    <div class="modal-content">
-      <button type="button" class="modal-close" id="modal-close" aria-label="Kapat">×</button>
-      <div class="modal-body" id="modal-body">
-        <!-- Film detayı buraya yüklenecek -->
-      </div>
     </div>
   </div>
 
@@ -214,7 +279,7 @@
 
   <footer class="footer">
     <div class="container">
-      <p>Film verileri yerel <code>db.json</code> dosyasından yüklenmektedir.</p>
+      <p>Film verileri MongoDB backend API uzerinden yuklenmektedir.</p>
     </div>
   </footer>
 

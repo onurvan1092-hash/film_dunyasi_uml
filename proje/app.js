@@ -5,8 +5,16 @@
   const STORAGE_USERS_KEY = 'film_dunyasi_users_v1';
   const STORAGE_SESSION_KEY = 'film_dunyasi_session_v1';
   const ADMIN_SESSION_ROLE = 'admin';
-  const ADMIN_USERNAME = 'admin';
-  const ADMIN_PASSWORD = '1234';
+  function getApiBaseUrl() {
+    try {
+      var h = typeof window !== 'undefined' && window.location && window.location.hostname;
+      if (!h) return 'http://localhost:5000/api';
+      return 'http://' + h + ':5000/api';
+    } catch (e) {
+      return 'http://localhost:5000/api';
+    }
+  }
+  var API_BASE_URL = getApiBaseUrl();
 
   const appView = document.getElementById('app-view');
   const authOverlay = document.getElementById('auth-overlay');
@@ -33,7 +41,7 @@
   const loginEmail = document.getElementById('login-email');
   const loginPassword = document.getElementById('login-password');
 
-  const adminUsername = document.getElementById('admin-username');
+  const adminEmail = document.getElementById('admin-email');
   const adminPassword = document.getElementById('admin-password');
   const openAdminLoginBtn = document.getElementById('open-admin-login');
   const openUserLoginBtn = document.getElementById('open-user-login');
@@ -51,12 +59,26 @@
   const adminMoviesCount = document.getElementById('admin-movies-count');
   const adminUsersTbody = document.getElementById('admin-users-tbody');
   const adminMoviesTbody = document.getElementById('admin-movies-tbody');
+  const adminAddMovieForm = document.getElementById('admin-add-movie-form');
+  const adminPanelMsg = document.getElementById('admin-panel-msg');
 
   const authState = {
     users: [],
     currentUser: null,
-    role: 'user'
+    role: 'user',
+    token: null
   };
+
+  function setAdminPanelMsg(message) {
+    if (!adminPanelMsg) return;
+    if (!message) {
+      adminPanelMsg.hidden = true;
+      adminPanelMsg.textContent = '';
+      return;
+    }
+    adminPanelMsg.hidden = false;
+    adminPanelMsg.textContent = message;
+  }
 
   function normalizeEmail(email) {
     return (email || '').trim().toLowerCase();
@@ -185,6 +207,8 @@
     setTimeout(function () {
       if (tab === 'login') {
         if (loginEmail) loginEmail.focus();
+      } else if (tab === 'admin') {
+        if (adminEmail) adminEmail.focus();
       } else {
         if (registerName) registerName.focus();
       }
@@ -192,6 +216,8 @@
   }
 
   function showLoggedOut(defaultTab) {
+    authState.token = null;
+    moviesStarted = false;
     switchAuthView(defaultTab || 'login');
   }
 
@@ -209,6 +235,7 @@
   }
 
   function showLoggedIn(user, statusMessage) {
+    authState.token = null;
     authState.currentUser = user;
     authState.role = 'user';
     if (authActions) authActions.hidden = true;
@@ -240,8 +267,8 @@
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }
 
-  function showAdminLoggedIn(statusMessage) {
-    authState.currentUser = { id: 'admin', name: 'Admin', email: 'admin' };
+  function showAdminLoggedIn(statusMessage, options) {
+    const silent = options && options.silent;
     authState.role = ADMIN_SESSION_ROLE;
     if (authActions) authActions.hidden = true;
     if (userActions) userActions.hidden = false;
@@ -253,8 +280,9 @@
     }
     document.body.classList.remove('auth-locked');
     clearSuccess();
+    setAdminPanelMsg('');
     if (panelStatus) {
-      if (statusMessage) {
+      if (statusMessage && !silent) {
         panelStatus.hidden = false;
         panelStatus.textContent = statusMessage;
         window.setTimeout(function () {
@@ -267,43 +295,92 @@
       }
     }
     startMoviesApp();
-    renderAdminPanel();
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }
 
-  function renderAdminPanel() {
-    if (authState.role !== ADMIN_SESSION_ROLE) return;
-    authState.users = loadUsers();
-    if (adminUsersCount) adminUsersCount.textContent = String(authState.users.length);
-    if (adminMoviesCount) adminMoviesCount.textContent = String(allMovies.length || 0);
+  async function renderAdminPanel() {
+    if (authState.role !== ADMIN_SESSION_ROLE || !authState.token) return;
 
-    if (adminUsersTbody) {
-      adminUsersTbody.innerHTML = '';
-      authState.users.forEach(function (u) {
-        const tr = document.createElement('tr');
-        tr.innerHTML =
-          '<td>' + escapeHtml(u.name || '—') + '</td>' +
-          '<td>' + escapeHtml(u.email || '—') + '</td>' +
-          '<td>' + escapeHtml(formatDate(u.createdAt)) + '</td>' +
-          '<td style="text-align:right;">' +
-            '<button type="button" class="auth-btn admin-danger" data-admin-action="delete-user" data-user-id="' + escapeHtml(u.id) + '">Sil</button>' +
-          '</td>';
-        adminUsersTbody.appendChild(tr);
-      });
-    }
+    try {
+      const headers = { Authorization: 'Bearer ' + authState.token };
+      const dashRes = await fetch(API_BASE_URL + '/admin/dashboard', { headers: headers });
+      if (dashRes.status === 401) {
+        authState.token = null;
+        localStorage.removeItem(STORAGE_SESSION_KEY);
+        showLoggedOut('login');
+        showError('Oturum suresi doldu veya yetki yok. Admin olarak tekrar girin.');
+        return;
+      }
+      const usersRes = await fetch(API_BASE_URL + '/admin/users', { headers: headers });
+      if (usersRes.status === 401) {
+        authState.token = null;
+        localStorage.removeItem(STORAGE_SESSION_KEY);
+        showLoggedOut('login');
+        showError('Oturum suresi doldu veya yetki yok. Admin olarak tekrar girin.');
+        return;
+      }
 
-    if (adminMoviesTbody) {
-      adminMoviesTbody.innerHTML = '';
-      (allMovies || []).slice(0, 60).forEach(function (m) {
-        const tr = document.createElement('tr');
-        const rating = m.vote_average != null && m.vote_average > 0 ? m.vote_average.toFixed(1) : '—';
-        tr.innerHTML =
-          '<td>' + escapeHtml(m.title || '—') + '</td>' +
-          '<td>' + escapeHtml(m.category || '—') + '</td>' +
-          '<td>' + escapeHtml(m.release_date || '—') + '</td>' +
-          '<td>' + escapeHtml(rating) + '</td>';
-        adminMoviesTbody.appendChild(tr);
-      });
+      let stats = null;
+      if (dashRes.ok) {
+        const dash = await dashRes.json();
+        stats = dash && dash.stats ? dash.stats : null;
+      }
+      if (stats && adminUsersCount) adminUsersCount.textContent = String(stats.users);
+      if (stats && adminMoviesCount) adminMoviesCount.textContent = String(stats.movies);
+
+      let dbUsers = [];
+      if (usersRes.ok) {
+        const ud = await usersRes.json();
+        dbUsers = Array.isArray(ud.users) ? ud.users : [];
+      }
+
+      if (!dashRes.ok && adminMoviesCount && allMovies.length) {
+        adminMoviesCount.textContent = String(allMovies.length);
+      }
+
+      if (adminUsersTbody) {
+        adminUsersTbody.innerHTML = '';
+        dbUsers.forEach(function (u) {
+          var uid = u._id != null ? String(u._id) : '';
+          var isAdminUser = u.role === 'admin';
+          var btn = '';
+          if (!isAdminUser && uid) {
+            btn = '<button type="button" class="auth-btn admin-danger" data-delete-db-user="' + escapeHtml(uid) + '">Sil</button>';
+          } else if (isAdminUser) {
+            btn = '<span style="color:var(--text-muted);font-size:0.85rem;">Admin</span>';
+          }
+          var tr = document.createElement('tr');
+          tr.innerHTML =
+            '<td>' + escapeHtml(u.name || '—') + '</td>' +
+            '<td>' + escapeHtml(u.email || '—') + '</td>' +
+            '<td>' + escapeHtml(formatDate(u.createdAt)) + '</td>' +
+            '<td style="text-align:right;">' + btn + '</td>';
+          adminUsersTbody.appendChild(tr);
+        });
+      }
+
+      if (adminMoviesTbody) {
+        adminMoviesTbody.innerHTML = '';
+        (allMovies || []).forEach(function (m) {
+          var mid = getMovieIdValue(m);
+          var rating = m.vote_average != null && m.vote_average > 0 ? m.vote_average.toFixed(1) : '—';
+          var tr = document.createElement('tr');
+          tr.innerHTML =
+            '<td>' + escapeHtml(m.title || '—') + '</td>' +
+            '<td>' + escapeHtml(m.category || '—') + '</td>' +
+            '<td>' + escapeHtml(m.release_date || '—') + '</td>' +
+            '<td>' + escapeHtml(rating) + '</td>' +
+            '<td style="text-align:right;">' +
+              '<button type="button" class="auth-btn admin-danger" data-delete-movie="' + escapeHtml(mid) + '">Sil</button>' +
+            '</td>';
+          adminMoviesTbody.appendChild(tr);
+        });
+      }
+    } catch (err) {
+      console.error(err);
+      if (adminMoviesCount && allMovies.length) {
+        adminMoviesCount.textContent = String(allMovies.length);
+      }
     }
   }
 
@@ -321,7 +398,7 @@
     if (profileName) profileName.textContent = user.name || '—';
     if (profileEmail) profileEmail.textContent = user.email || '—';
     if (profileCreatedAt) profileCreatedAt.textContent = formatDate(user.createdAt);
-    if (profileId) profileId.textContent = user.id || '—';
+    if (profileId) profileId.textContent = user.id != null ? String(user.id) : '—';
   }
 
   function openProfile() {
@@ -435,26 +512,202 @@
     }
   }
 
-  function handleAdminLogin(e) {
+  async function handleAdminLogin(e) {
     e.preventDefault();
     clearError();
     clearSuccess();
 
-    const u = (adminUsername && adminUsername.value || '').trim();
-    const p = adminPassword && adminPassword.value;
+    const email = normalizeEmail(adminEmail && adminEmail.value);
+    const password = adminPassword && adminPassword.value;
 
-    if (!u || !p) {
-      showError('Admin kullanıcı adı ve şifre zorunludur.');
+    if (!email || !password) {
+      showError('Admin e-posta ve sifre zorunludur.');
       return;
     }
 
-    if (u !== ADMIN_USERNAME || p !== ADMIN_PASSWORD) {
-      showError('Admin bilgileri hatalı.');
+    try {
+      const res = await fetch(API_BASE_URL + '/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: email, password: password })
+      });
+      var data = await res.json().catch(function () {
+        return {};
+      });
+      if (!res.ok) {
+        showError(data.message || 'Admin girisi basarisiz.');
+        return;
+      }
+      if (!data.user || data.user.role !== 'admin') {
+        showError('Bu hesap admin yetkisine sahip degil. Veritabaninda admin olusturdugunuz hesapla girin.');
+        return;
+      }
+      authState.token = data.token;
+      authState.currentUser = {
+        id: data.user.id,
+        name: data.user.name,
+        email: data.user.email,
+        createdAt: data.user.createdAt
+      };
+      persistSession({
+        role: ADMIN_SESSION_ROLE,
+        token: data.token,
+        adminUser: {
+          id: data.user.id,
+          name: data.user.name,
+          email: data.user.email,
+          createdAt: data.user.createdAt
+        }
+      });
+      showAdminLoggedIn('Admin girisi basarili.');
+    } catch (err) {
+      var msg = err && err.message ? err.message : 'Sunucuya baglanilamadi (backend kapali mi?).';
+      showError(msg);
+      console.error(err);
+    }
+  }
+
+  async function handleAdminAddMovie(e) {
+    e.preventDefault();
+    if (authState.role !== ADMIN_SESSION_ROLE || !authState.token) return;
+    setAdminPanelMsg('');
+    var titleEl = document.getElementById('admin-movie-title');
+    var catEl = document.getElementById('admin-movie-category');
+    var relEl = document.getElementById('admin-movie-release');
+    var rateEl = document.getElementById('admin-movie-rating');
+    var runEl = document.getElementById('admin-movie-runtime');
+    var postEl = document.getElementById('admin-movie-poster');
+    var overEl = document.getElementById('admin-movie-overview');
+    var watchEl = document.getElementById('admin-movie-watch');
+    var videoUrlEl = document.getElementById('admin-movie-video');
+
+    var title = (titleEl && titleEl.value || '').trim();
+    if (!title) {
+      setAdminPanelMsg('Baslik zorunlu.');
       return;
     }
 
-    persistSession({ role: ADMIN_SESSION_ROLE });
-    showAdminLoggedIn('Admin girişi başarılı.');
+    var payload = {
+      title: title,
+      category: catEl && catEl.value ? catEl.value : 'popular',
+      release_date: relEl && relEl.value ? String(relEl.value).trim() : '',
+      overview: overEl && overEl.value ? String(overEl.value).trim() : '',
+      poster: postEl && postEl.value ? String(postEl.value).trim() : ''
+    };
+    if (watchEl && watchEl.value && String(watchEl.value).trim())
+      payload.watch_url = String(watchEl.value).trim();
+    if (videoUrlEl && videoUrlEl.value && String(videoUrlEl.value).trim())
+      payload.videoUrl = String(videoUrlEl.value).trim();
+    if (rateEl && rateEl.value !== '') {
+      var rv = parseFloat(rateEl.value, 10);
+      if (!isNaN(rv)) payload.vote_average = rv;
+    }
+    if (runEl && runEl.value !== '') {
+      var ru = parseInt(runEl.value, 10);
+      if (!isNaN(ru)) payload.runtime = ru;
+    }
+
+    try {
+      var res = await fetch(API_BASE_URL + '/admin/movies', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: 'Bearer ' + authState.token
+        },
+        body: JSON.stringify(payload)
+      });
+      var out = await res.json().catch(function () {
+        return {};
+      });
+      if (res.status === 401) {
+        authState.token = null;
+        localStorage.removeItem(STORAGE_SESSION_KEY);
+        showLoggedOut('login');
+        showError('Oturum suresi doldu. Tekrar admin girisi yapin.');
+        return;
+      }
+      if (!res.ok) {
+        setAdminPanelMsg(out.message || 'Film eklenemedi.');
+        return;
+      }
+      if (adminAddMovieForm) adminAddMovieForm.reset();
+      setAdminPanelMsg('Film veritabanina eklendi.');
+      await loadDb();
+      await renderAdminPanel();
+      var activeBtn = document.querySelector('.nav-link.active');
+      loadList(activeBtn && activeBtn.dataset.filter ? activeBtn.dataset.filter : 'popular');
+    } catch (err) {
+      setAdminPanelMsg(err && err.message ? err.message : 'Baglanti hatasi.');
+      console.error(err);
+    }
+  }
+
+  async function handleAdminMovieRowClick(ev) {
+    var delBtn = ev.target && ev.target.closest ? ev.target.closest('button[data-delete-movie]') : null;
+    if (!delBtn) return;
+    var movieIdStr = delBtn.getAttribute('data-delete-movie');
+    if (!movieIdStr || !authState.token) return;
+    if (!window.confirm('Bu filmi veritabanindan silmek istediginize emin misiniz?')) return;
+    try {
+      var res = await fetch(API_BASE_URL + '/admin/movies/' + encodeURIComponent(movieIdStr), {
+        method: 'DELETE',
+        headers: { Authorization: 'Bearer ' + authState.token }
+      });
+      if (res.status === 401) {
+        authState.token = null;
+        localStorage.removeItem(STORAGE_SESSION_KEY);
+        showLoggedOut('login');
+        showError('Oturum suresi doldu.');
+        return;
+      }
+      var out = await res.json().catch(function () {
+        return {};
+      });
+      if (!res.ok) {
+        setAdminPanelMsg(out.message || 'Film silinemedi.');
+        return;
+      }
+      setAdminPanelMsg('Film veritabanindan silindi.');
+      await loadDb();
+      await renderAdminPanel();
+      var activeBtn2 = document.querySelector('.nav-link.active');
+      loadList(activeBtn2 && activeBtn2.dataset.filter ? activeBtn2.dataset.filter : 'popular');
+    } catch (err) {
+      setAdminPanelMsg(err && err.message ? err.message : 'Baglanti hatasi.');
+      console.error(err);
+    }
+  }
+
+  async function handleAdminUserRowClick(ev) {
+    var delBtn = ev.target && ev.target.closest ? ev.target.closest('button[data-delete-db-user]') : null;
+    if (!delBtn) return;
+    var userIdStr = delBtn.getAttribute('data-delete-db-user');
+    if (!userIdStr || !authState.token) return;
+    if (!window.confirm('Bu kullaniciyi veritabanindan silmek istediginize emin misiniz?')) return;
+    try {
+      var res = await fetch(API_BASE_URL + '/admin/users/' + encodeURIComponent(userIdStr), {
+        method: 'DELETE',
+        headers: { Authorization: 'Bearer ' + authState.token }
+      });
+      if (res.status === 401) {
+        authState.token = null;
+        localStorage.removeItem(STORAGE_SESSION_KEY);
+        showLoggedOut('login');
+        showError('Oturum suresi doldu.');
+        return;
+      }
+      var out = await res.json().catch(function () {
+        return {};
+      });
+      if (!res.ok) {
+        setAdminPanelMsg(out.message || 'Kullanici silinemedi.');
+        return;
+      }
+      await renderAdminPanel();
+    } catch (err) {
+      setAdminPanelMsg(err && err.message ? err.message : 'Baglanti hatasi.');
+      console.error(err);
+    }
   }
 
   function bindAuthEvents() {
@@ -471,6 +724,7 @@
 
     if (logoutBtn) {
       logoutBtn.addEventListener('click', function () {
+        authState.token = null;
         localStorage.removeItem(STORAGE_SESSION_KEY);
         showLoggedOut('register');
       });
@@ -493,21 +747,22 @@
     if (openUserLoginBtn) openUserLoginBtn.addEventListener('click', function () { switchAuthView('login'); });
     if (openUserLoginBtn2) openUserLoginBtn2.addEventListener('click', function () { switchAuthView('login'); });
 
-    if (adminRefreshBtn) adminRefreshBtn.addEventListener('click', renderAdminPanel);
-
-    if (adminUsersTbody) {
-      adminUsersTbody.addEventListener('click', function (ev) {
-        const btn = ev.target && ev.target.closest ? ev.target.closest('button[data-admin-action]') : null;
-        if (!btn) return;
-        const action = btn.getAttribute('data-admin-action');
-        if (action !== 'delete-user') return;
-        const userId = btn.getAttribute('data-user-id');
-        if (!userId) return;
-        const users = loadUsers().filter(function (u) { return u.id !== userId; });
-        saveUsers(users);
-        authState.users = users;
+    if (adminRefreshBtn) {
+      adminRefreshBtn.addEventListener('click', function () {
         renderAdminPanel();
       });
+    }
+
+    if (adminAddMovieForm) {
+      adminAddMovieForm.addEventListener('submit', handleAdminAddMovie);
+    }
+
+    if (adminMoviesTbody) {
+      adminMoviesTbody.addEventListener('click', handleAdminMovieRowClick);
+    }
+
+    if (adminUsersTbody) {
+      adminUsersTbody.addEventListener('click', handleAdminUserRowClick);
     }
   }
 
@@ -515,7 +770,28 @@
     authState.users = loadUsers();
     const session = loadSession();
     if (session && session.role === ADMIN_SESSION_ROLE) {
-      showAdminLoggedIn();
+      if (!session.token) {
+        localStorage.removeItem(STORAGE_SESSION_KEY);
+        showLoggedOut('register');
+        return false;
+      }
+      authState.token = session.token;
+      authState.role = ADMIN_SESSION_ROLE;
+      if (session.adminUser) {
+        authState.currentUser = {
+          id: session.adminUser.id,
+          name: session.adminUser.name,
+          email: session.adminUser.email,
+          createdAt: session.adminUser.createdAt
+        };
+      } else {
+        authState.currentUser = {
+          id: '',
+          name: 'Admin',
+          email: ''
+        };
+      }
+      showAdminLoggedIn(null, { silent: true });
       return true;
     }
 
@@ -540,11 +816,6 @@
   const sectionTitle = document.getElementById('section-title');
   const searchInput = document.querySelector('.search-input');
   const navLinks = document.querySelectorAll('.nav-link');
-  const modal = document.getElementById('movie-modal');
-  const modalBackdrop = document.getElementById('modal-backdrop');
-  const modalClose = document.getElementById('modal-close');
-  const modalBody = document.getElementById('modal-body');
-
   const TITLES = {
     popular: 'Popüler Filmler',
     top_rated: 'En İyi Filmler',
@@ -553,20 +824,14 @@
   };
 
   let allMovies = [];
-
-  var FALLBACK_MOVIES = [{"id":1,"title":"Esaretin Bedeli","release_date":"1994","vote_average":9.3,"overview":"Masum olduğu halde hapse düşen bir bankacı, cezaevinde hayata tutunmayı ve umudu kaybetmemeyi öğrenir.","poster":"https://picsum.photos/seed/m1/500/750","runtime":142,"category":"top_rated"},{"id":2,"title":"Baba","release_date":"1972","vote_average":9.2,"overview":"New York'lu mafya ailesinin lideri Don Corleone'nin iktidar ve aile arasındaki dengede verdiği mücadele.","poster":"https://picsum.photos/seed/m2/500/750","runtime":175,"category":"top_rated"},{"id":3,"title":"Kara Şövalye","release_date":"2008","vote_average":9.0,"overview":"Batman, Joker'in Gotham'ı kaosa sürüklemesini engellemek için son bir mücadeleye girişir.","poster":"https://picsum.photos/seed/m3/500/750","runtime":152,"category":"popular"},{"id":4,"title":"12 Öfkeli Adam","release_date":"1957","vote_average":8.9,"overview":"Jüri odasında tek bir jüri üyesi, diğerlerini masum bir sanığı yeniden değerlendirmeye ikna eder.","poster":"https://picsum.photos/seed/m4/500/750","runtime":96,"category":"top_rated"},{"id":5,"title":"Forrest Gump","release_date":"1994","vote_average":8.8,"overview":"Düşük IQ'lu Forrest Gump, Amerikan tarihinin önemli anlarına tanıklık ederek hayat hikayesini anlatır.","poster":"https://picsum.photos/seed/m5/500/750","runtime":142,"category":"popular"},{"id":6,"title":"Başlangıç","release_date":"2010","vote_average":8.7,"overview":"Rüyalara girip fikir çalabilen bir hırsız, imkansız görünen bir görev için ekibini toplar.","poster":"https://picsum.photos/seed/m6/500/750","runtime":148,"category":"popular"},{"id":7,"title":"Dövüş Kulübü","release_date":"1999","vote_average":8.6,"overview":"Uykusuzluk çeken bir ofis çalışanı, sabun satıcısı Tyler Durden ile tanışır ve hayatı değişir.","poster":"https://picsum.photos/seed/m7/500/750","runtime":139,"category":"popular"},{"id":8,"title":"Yüzüklerin Efendisi: Kralın Dönüşü","release_date":"2003","vote_average":8.9,"overview":"Frodo ve Sam son bir hamleyle Yüzük'ü yok etmeye giderken, Gondor'da büyük savaş başlar.","poster":"https://picsum.photos/seed/m8/500/750","runtime":201,"category":"popular"},{"id":9,"title":"Piyanist","release_date":"2002","vote_average":8.5,"overview":"II. Dünya Savaşı'nda Varşova gettosunda hayatta kalmaya çalışan Yahudi bir piyanistin hikayesi.","poster":"https://picsum.photos/seed/m9/500/750","runtime":150,"category":"top_rated"},{"id":10,"title":"Yeşil Yol","release_date":"1999","vote_average":8.6,"overview":"Death Row gardiyanı ile idam mahkumu arasında gelişen sıra dışı dostluk ve mucize hikayesi.","poster":"https://picsum.photos/seed/m10/500/750","runtime":189,"category":"top_rated"},{"id":11,"title":"Yıldızlararası","release_date":"2014","vote_average":8.6,"overview":"Dünya çökerken bir grup kaşif, insanlığın kurtuluşu için uzayda yeni bir yuva arar.","poster":"https://picsum.photos/seed/m11/500/750","runtime":169,"category":"popular"},{"id":12,"title":"Matrix","release_date":"1999","vote_average":8.7,"overview":"Bilgisayar korsanı Neo, gerçek dünyanın aslında bir simülasyon olduğunu keşfeder.","poster":"https://picsum.photos/seed/m12/500/750","runtime":136,"category":"popular"},{"id":13,"title":"Yedinci Mühür","release_date":"1957","vote_average":8.2,"overview":"Haçlı seferinden dönen bir şövalye, Ölüm ile satranç oynayarak hayatı sorgular.","poster":"https://picsum.photos/seed/m13/500/750","runtime":96,"category":"top_rated"},{"id":14,"title":"Parazit","release_date":"2019","vote_average":8.5,"overview":"Yoksul bir aile, zengin bir ailenin evine sızarak hayatlarını değiştirmeye çalışır.","poster":"https://picsum.photos/seed/m14/500/750","runtime":132,"category":"popular"},{"id":15,"title":"Joker","release_date":"2019","vote_average":8.4,"overview":"Başarısız bir komedyen, toplum tarafından dışlanınca karanlık bir dönüşüm geçirir.","poster":"https://picsum.photos/seed/m15/500/750","runtime":122,"category":"popular"},{"id":16,"title":"Uzay Yolu: Yeni Nesil","release_date":"2025","vote_average":0,"overview":"Uzay Yolu evreninde yeni nesil maceralar. Keşif ve diplomasi yolculuğu devam ediyor.","poster":"https://picsum.photos/seed/m16/500/750","runtime":0,"category":"upcoming"},{"id":17,"title":"Avatar: Suyun Yolu","release_date":"2025","vote_average":0,"overview":"Pandora'da Jake Sully ve ailesi yeni tehditlerle karşılaşır. Su kabileleriyle ittifak kurulur.","poster":"https://picsum.photos/seed/m17/500/750","runtime":0,"category":"upcoming"},{"id":18,"title":"Süpermen: Yeni Gün","release_date":"2025","vote_average":0,"overview":"DC evreninde Süpermen'in yeni bir yorumu. Kahramanlık ve kimlik temaları işleniyor.","poster":"https://picsum.photos/seed/m18/500/750","runtime":0,"category":"upcoming"},{"id":19,"title":"Karayip Korsanları: Yeni Serüven","release_date":"2025","vote_average":0,"overview":"Denizlerde yeni bir efsane. Korsanlar, hazineler ve unutulmaz maceralar geri dönüyor.","poster":"https://picsum.photos/seed/m19/500/750","runtime":0,"category":"upcoming"},{"id":20,"title":"Mission: Impossible 9","release_date":"2025","vote_average":0,"overview":"Ethan Hunt ve ekibi bu sefer dünyayı tehdit eden en tehlikeli düşmanla yüzleşecek.","poster":"https://picsum.photos/seed/m20/500/750","runtime":0,"category":"upcoming"}];
+  let moviesStarted = false;
 
   async function loadDb() {
-    try {
-      const res = await fetch('db.json');
-      if (!res.ok) throw new Error('Veri yüklenemedi');
-      const data = await res.json();
-      allMovies = data.movies || [];
-      return allMovies;
-    } catch (e) {
-      allMovies = FALLBACK_MOVIES.slice();
-      return allMovies;
-    }
+    const res = await fetch(API_BASE_URL + '/movies');
+    if (!res.ok) throw new Error('Filmler backend API uzerinden yuklenemedi.');
+    const data = await res.json();
+    allMovies = Array.isArray(data.movies) ? data.movies : [];
+    return allMovies;
   }
 
   function getMoviesByFilter(filter) {
@@ -586,8 +851,9 @@
     });
   }
 
-  function getMovieById(id) {
-    return allMovies.find(function (m) { return m.id === parseInt(id, 10); });
+  function getMovieIdValue(movie) {
+    if (!movie) return '';
+    return String(movie._id || movie.id || '');
   }
 
   function renderMovies(movies) {
@@ -600,9 +866,13 @@
     movies.forEach(function (movie) {
       const card = document.createElement('a');
       card.className = 'movie-card';
-      card.href = '#';
-      card.dataset.id = movie.id;
-      const poster = movie.poster || IMAGE_PLACEHOLDER;
+      const movieId = getMovieIdValue(movie);
+      card.href = movieId ? 'film-detay.html?id=' + encodeURIComponent(movieId) : '#';
+      card.dataset.id = movieId;
+      const poster =
+        movie && movie.poster && String(movie.poster).trim()
+          ? String(movie.poster).trim()
+          : IMAGE_PLACEHOLDER;
       const title = movie.title || 'İsimsiz';
       const date = movie.release_date || '—';
       const rating = movie.vote_average != null && movie.vote_average > 0
@@ -616,10 +886,6 @@
             '<span>' + date + '</span>' +
           '</div>' +
         '</div>';
-      card.addEventListener('click', function (e) {
-        e.preventDefault();
-        openDetail(movie.id);
-      });
       grid.appendChild(card);
     });
   }
@@ -657,29 +923,6 @@
     }, 200);
   }
 
-  function openDetail(id) {
-    const movie = getMovieById(id);
-    if (!movie) return;
-    modal.setAttribute('aria-hidden', 'false');
-    const poster = movie.poster || IMAGE_PLACEHOLDER;
-    const date = movie.release_date || '';
-    const runtime = movie.runtime ? movie.runtime + ' dk' : '';
-    const meta = [date, runtime].filter(Boolean).join(' · ');
-    modalBody.innerHTML =
-      '<div class="movie-detail">' +
-        '<img class="movie-detail-poster" src="' + poster + '" alt="">' +
-        '<div class="movie-detail-info">' +
-          '<h3>' + escapeHtml(movie.title) + '</h3>' +
-          '<p class="movie-detail-meta">' + (meta || '—') + '</p>' +
-          '<p class="movie-detail-overview">' + escapeHtml(movie.overview || 'Özet bulunamadı.') + '</p>' +
-        '</div>' +
-      '</div>';
-  }
-
-  function closeModal() {
-    modal.setAttribute('aria-hidden', 'true');
-  }
-
   navLinks.forEach(function (btn) {
     btn.addEventListener('click', function () {
       navLinks.forEach(function (b) { b.classList.remove('active'); });
@@ -699,24 +942,24 @@
     }, 350);
   });
 
-  modalBackdrop.addEventListener('click', closeModal);
-  modalClose.addEventListener('click', closeModal);
-
   if (profileBackdrop) profileBackdrop.addEventListener('click', closeProfile);
   if (profileClose) profileClose.addEventListener('click', closeProfile);
 
   document.addEventListener('keydown', function (e) {
-    if (e.key === 'Escape' && modal.getAttribute('aria-hidden') === 'false') closeModal();
     if (e.key === 'Escape' && profileModal && profileModal.getAttribute('aria-hidden') === 'false') closeProfile();
   });
 
-  let moviesStarted = false;
   function startMoviesApp() {
     if (moviesStarted) return;
     moviesStarted = true;
-    loadDb().then(function () {
-      if (authState.role === ADMIN_SESSION_ROLE) renderAdminPanel();
+    loadDb().then(async function () {
+      if (authState.role === ADMIN_SESSION_ROLE) {
+        await renderAdminPanel();
+      }
       loadList('popular');
+    }).catch(function (err) {
+      moviesStarted = false;
+      showError(err && err.message ? err.message : 'Filmler yuklenemedi.');
     });
   }
 
